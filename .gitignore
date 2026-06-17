@@ -4,6 +4,9 @@ logs/*
 node_modules
 .parcel-cache
 
+#cursor
+.cursor/*
+
 helix-importer-ui
 .DS_Store
 *.bak
