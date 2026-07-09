@@ -7,6 +7,33 @@ const STATUS_LABELS = {
   'out-of-stock': 'Out of stock',
 };
 
+const VALID_STATUS_CLASSES = new Set(Object.keys(STATUS_LABELS));
+
+const DEFAULTS = {
+  title: 'When will it arrive?',
+  ctaText: 'Check estimated delivery',
+};
+
+const PRODUCTS = [
+  { value: 'house-blend-medium-roast', label: 'House Blend- Medium Roast' },
+  { value: 'frescopa-smart-machine', label: 'Fréscopa Smart Machine' },
+  { value: 'insulated-travel-thermos', label: 'Insulated Travel Thermos' },
+];
+
+const PRODUCT_OPTIONS_HTML = PRODUCTS.map(
+  (p) => `<option value="${p.value}">${p.label}</option>`,
+).join('');
+
+const PLACEHOLDER_HTML = `
+  <div class="estimated-delivery__placeholder">
+    <p class="estimated-delivery__eyebrow">Estimated delivery</p>
+    <p class="estimated-delivery__placeholder-title">Your estimate will appear here</p>
+    <p class="estimated-delivery__placeholder-text">Select a product, enter your postcode, and click the button to see availability and delivery timing.</p>
+  </div>
+`;
+
+let cachedApiUrl;
+
 function isLocalDev() {
   const { hostname } = window.location;
   return hostname === 'localhost' || hostname === '127.0.0.1';
@@ -17,18 +44,16 @@ function isAuthoringHost() {
 }
 
 function getEstimatedDeliveryApiUrl() {
+  if (cachedApiUrl) return cachedApiUrl;
+
   // Local: site (aem up) on :3000, Edge Function on :7676 — call it directly.
   // Production: relative path, routed to Edge Function via CDN origin selector.
-  if (isLocalDev()) {
-    return `${LOCAL_EDGE_FUNCTION_ORIGIN}${API_PATH}`;
-  }
-  return API_PATH;
-}
+  cachedApiUrl = isLocalDev()
+    ? `${LOCAL_EDGE_FUNCTION_ORIGIN}${API_PATH}`
+    : API_PATH;
 
-const DEFAULTS = {
-  title: 'When will it arrive?',
-  ctaText: 'Check estimated delivery',
-};
+  return cachedApiUrl;
+}
 
 function getBlockText(el, fallback) {
   const text = el?.textContent?.trim();
@@ -43,12 +68,6 @@ function readBlockContent(block) {
     ctaText: getBlockText(props[1], DEFAULTS.ctaText),
   };
 }
-
-const PRODUCTS = [
-  { value: 'house-blend-medium-roast', label: 'House Blend- Medium Roast' },
-  { value: 'frescopa-smart-machine', label: 'Fréscopa Smart Machine' },
-  { value: 'insulated-travel-thermos', label: 'Insulated Travel Thermos' },
-];
 
 function escapeHtml(text) {
   return String(text)
@@ -104,14 +123,12 @@ function formatStatus(status) {
   return STATUS_LABELS[status] || status;
 }
 
+function getStatusClass(status) {
+  return VALID_STATUS_CLASSES.has(status) ? status : 'unknown';
+}
+
 function renderPlaceholder(container) {
-  container.innerHTML = `
-    <div class="estimated-delivery__placeholder">
-      <p class="estimated-delivery__eyebrow">Estimated delivery</p>
-      <p class="estimated-delivery__placeholder-title">Your estimate will appear here</p>
-      <p class="estimated-delivery__placeholder-text">Select a product, enter your postcode, and click the button to see availability and delivery timing.</p>
-    </div>
-  `;
+  container.innerHTML = PLACEHOLDER_HTML;
 }
 
 function renderResult(container, state) {
@@ -137,39 +154,44 @@ function renderResult(container, state) {
     return;
   }
 
+  const statusClass = getStatusClass(data.inventoryStatus);
+
   container.innerHTML = `
-    <article class="estimated-delivery__card estimated-delivery__card--${data.inventoryStatus}">
+    <article class="estimated-delivery__card estimated-delivery__card--${statusClass}">
       <header class="estimated-delivery__card-header">
         <p class="estimated-delivery__eyebrow">Estimated delivery</p>
-        <h4 class="estimated-delivery__product">${data.productName}</h4>
-        <span class="estimated-delivery__badge">${formatStatus(data.inventoryStatus)}</span>
+        <h4 class="estimated-delivery__product">${escapeHtml(data.productName)}</h4>
+        <span class="estimated-delivery__badge">${escapeHtml(formatStatus(data.inventoryStatus))}</span>
       </header>
 
       <div class="estimated-delivery__eta">
         <span class="estimated-delivery__eta-label">Arrives</span>
-        <span class="estimated-delivery__eta-value">${data.deliveryEta}</span>
+        <span class="estimated-delivery__eta-value">${escapeHtml(data.deliveryEta)}</span>
       </div>
 
       <dl class="estimated-delivery__details">
         <div class="estimated-delivery__detail">
           <dt>Qty available</dt>
-          <dd>${data.qtyLeft}</dd>
+          <dd>${escapeHtml(data.qtyLeft)}</dd>
         </div>
         <div class="estimated-delivery__detail">
           <dt>Fulfillment region</dt>
-          <dd>${data.fulfillmentRegion}</dd>
+          <dd>${escapeHtml(data.fulfillmentRegion)}</dd>
         </div>
       </dl>
 
-      <p class="estimated-delivery__message">${data.message}</p>
-      <p class="estimated-delivery__cutoff">${data.cutoffMessage}</p>
+      <p class="estimated-delivery__message">${escapeHtml(data.message)}</p>
+      <p class="estimated-delivery__cutoff">${escapeHtml(data.cutoffMessage)}</p>
     </article>
   `;
 }
 
-async function fetchEstimatedDelivery(sku, postcode) {
+async function fetchEstimatedDelivery(sku, postcode, signal) {
   const params = new URLSearchParams({ sku, postcode });
-  const response = await fetch(`${getEstimatedDeliveryApiUrl()}?${params.toString()}`);
+  const response = await fetch(`${getEstimatedDeliveryApiUrl()}?${params.toString()}`, {
+    signal,
+    cache: 'no-store',
+  });
 
   const body = await response.json().catch(() => ({}));
 
@@ -190,7 +212,7 @@ export default function decorate(block) {
     <div class="estimated-delivery">
       <div class="estimated-delivery__intro">
         <p class="estimated-delivery__eyebrow">Delivery checker</p>
-        <h3 class="estimated-delivery__title" data-aue-prop="title" data-aue-label="Heading" data-aue-type="text">${title}</h3>
+        <h3 class="estimated-delivery__title" data-aue-prop="title" data-aue-label="Heading" data-aue-type="text">${escapeHtml(title)}</h3>
         <p class="estimated-delivery__subtitle">Select a product and enter your postcode to see availability and estimated delivery.</p>
       </div>
 
@@ -199,7 +221,7 @@ export default function decorate(block) {
           <label class="estimated-delivery__field">
             <span class="estimated-delivery__label">Product</span>
             <select name="sku">
-              ${PRODUCTS.map((p) => `<option value="${p.value}">${p.label}</option>`).join('')}
+              ${PRODUCT_OPTIONS_HTML}
             </select>
           </label>
 
@@ -208,19 +230,20 @@ export default function decorate(block) {
             <input name="postcode" type="text" placeholder="e.g. 10001" required />
           </label>
 
-          <button type="submit" class="button" data-aue-prop="ctaText" data-aue-label="CTA Text" data-aue-type="text">${ctaText}</button>
+          <button type="submit" class="button" data-aue-prop="ctaText" data-aue-label="CTA Text" data-aue-type="text">${escapeHtml(ctaText)}</button>
         </form>
 
-        <div class="estimated-delivery__result" aria-live="polite"></div>
+        <div class="estimated-delivery__result" aria-live="polite">${PLACEHOLDER_HTML}</div>
       </div>
     </div>
   `;
 
   const form = block.querySelector('form');
   const result = block.querySelector('.estimated-delivery__result');
+  const submitBtn = form.querySelector('button[type="submit"]');
   const setState = (state) => renderResult(result, state);
 
-  setState({});
+  let activeRequest;
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -239,13 +262,21 @@ export default function decorate(block) {
       return;
     }
 
+    activeRequest?.abort();
+    const controller = new AbortController();
+    activeRequest = controller;
+
     setState({ loading: true });
+    submitBtn.disabled = true;
 
     try {
-      const data = await fetchEstimatedDelivery(sku, postcode);
+      const data = await fetchEstimatedDelivery(sku, postcode, controller.signal);
       setState({ data });
     } catch (err) {
+      if (err.name === 'AbortError') return;
       setState({ error: formatError(err) });
+    } finally {
+      submitBtn.disabled = false;
     }
   });
 }
