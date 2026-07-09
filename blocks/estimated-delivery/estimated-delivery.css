@@ -103,16 +103,31 @@
 }
 
 .estimated-delivery__alert {
+  display: grid;
+  gap: var(--spacing-xsmall);
   padding: var(--spacing-small) var(--spacing-medium);
   border-radius: 12px;
   background: var(--color-alert-200);
   border-left: 4px solid var(--color-alert-500);
 }
 
-.estimated-delivery__alert p {
+.estimated-delivery__alert-title {
   margin: 0;
+  font: normal normal 600 16px/24px Roboto, sans-serif;
   color: var(--frescopa-color-text);
+}
+
+.estimated-delivery__alert-message {
+  margin: 0;
   font: normal normal normal 16px/24px Roboto, sans-serif;
+  color: var(--frescopa-color-text);
+}
+
+.estimated-delivery__alert-hint {
+  margin: 0;
+  font: normal normal normal 14px/20px Roboto, sans-serif;
+  color: var(--frescopa-color-text);
+  opacity: 0.85;
 }
 
 .estimated-delivery__card {

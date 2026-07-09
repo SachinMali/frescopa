@@ -12,6 +12,10 @@ function isLocalDev() {
   return hostname === 'localhost' || hostname === '127.0.0.1';
 }
 
+function isAuthoringHost() {
+  return /enablementadobe\.com$/.test(window.location.hostname);
+}
+
 function getEstimatedDeliveryApiUrl() {
   // Local: site (aem up) on :3000, Edge Function on :7676 — call it directly.
   // Production: relative path, routed to Edge Function via CDN origin selector.
@@ -46,6 +50,56 @@ const PRODUCTS = [
   { value: 'insulated-travel-thermos', label: 'Insulated Travel Thermos' },
 ];
 
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function formatError(err) {
+  const message = err?.message || '';
+
+  if (message === 'Failed to fetch' || err?.name === 'TypeError') {
+    if (isLocalDev()) {
+      return {
+        title: 'Delivery service unavailable',
+        message: 'We could not reach the estimated delivery API on port 7676.',
+        hint: 'Start the Edge Function with: aio aem edge-functions serve',
+      };
+    }
+
+    return {
+      title: 'Delivery service unavailable',
+      message: 'We could not reach the estimated delivery service. Please try again shortly.',
+      hint: isAuthoringHost()
+        ? 'Confirm the Edge Function is deployed and the CDN route for /api/frescopa/estimated-delivery is active.'
+        : null,
+    };
+  }
+
+  return {
+    title: 'Unable to check delivery',
+    message: message || 'Something went wrong. Please try again.',
+    hint: null,
+  };
+}
+
+function renderError(container, error) {
+  const { title, message, hint } = typeof error === 'string'
+    ? { title: 'Unable to check delivery', message: error, hint: null }
+    : error;
+
+  container.innerHTML = `
+    <div class="estimated-delivery__alert" role="alert">
+      <p class="estimated-delivery__alert-title">${escapeHtml(title)}</p>
+      <p class="estimated-delivery__alert-message">${escapeHtml(message)}</p>
+      ${hint ? `<p class="estimated-delivery__alert-hint">${escapeHtml(hint)}</p>` : ''}
+    </div>
+  `;
+}
+
 function formatStatus(status) {
   return STATUS_LABELS[status] || status;
 }
@@ -64,11 +118,7 @@ function renderResult(container, state) {
   }
 
   if (error) {
-    container.innerHTML = `
-      <div class="estimated-delivery__alert" role="alert">
-        <p>${error}</p>
-      </div>
-    `;
+    renderError(container, error);
     return;
   }
 
@@ -114,7 +164,10 @@ async function fetchEstimatedDelivery(sku, postcode) {
   const body = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(body.message || body.error || 'Unable to check estimated delivery.');
+    const apiMessage = body.message || body.error;
+    const err = new Error(apiMessage || 'Unable to check estimated delivery right now.');
+    err.code = body.code;
+    throw err;
   }
 
   return body;
@@ -163,7 +216,12 @@ export default function decorate(block) {
     const postcode = String(formData.get('postcode') || '').trim();
 
     if (!postcode) {
-      setState({ error: 'Enter a postcode to check estimated delivery.' });
+      setState({
+        error: {
+          title: 'Postcode required',
+          message: 'Enter a postcode to check estimated delivery.',
+        },
+      });
       return;
     }
 
@@ -173,7 +231,7 @@ export default function decorate(block) {
       const data = await fetchEstimatedDelivery(sku, postcode);
       setState({ data });
     } catch (err) {
-      setState({ error: err.message || 'Something went wrong.' });
+      setState({ error: formatError(err) });
     }
   });
 }
