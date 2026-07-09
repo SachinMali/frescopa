@@ -21,6 +21,25 @@ function getEstimatedDeliveryApiUrl() {
   return API_PATH;
 }
 
+const DEFAULTS = {
+  title: 'When will it arrive?',
+  ctaText: 'Check estimated delivery',
+};
+
+function getBlockText(el, fallback) {
+  const text = el?.textContent?.trim();
+  return text || fallback;
+}
+
+function readBlockContent(block) {
+  const props = [...block.children].map((row) => row.firstElementChild);
+
+  return {
+    title: getBlockText(props[0], DEFAULTS.title),
+    ctaText: getBlockText(props[1], DEFAULTS.ctaText),
+  };
+}
+
 const PRODUCTS = [
   { value: 'house-blend-medium-roast', label: 'House Blend- Medium Roast' },
   { value: 'frescopa-smart-machine', label: 'Fréscopa Smart Machine' },
@@ -102,11 +121,13 @@ async function fetchEstimatedDelivery(sku, postcode) {
 }
 
 export default function decorate(block) {
+  const { title, ctaText } = readBlockContent(block);
+
   block.innerHTML = `
     <div class="estimated-delivery">
       <div class="estimated-delivery__intro">
         <p class="estimated-delivery__eyebrow">Delivery checker</p>
-        <h3 class="estimated-delivery__title">When will it arrive?</h3>
+        <h3 class="estimated-delivery__title" data-aue-prop="title" data-aue-label="Heading" data-aue-type="text">${title}</h3>
         <p class="estimated-delivery__subtitle">Select a product and enter your postcode to see availability and estimated delivery.</p>
       </div>
 
@@ -123,7 +144,7 @@ export default function decorate(block) {
           <input name="postcode" type="text" placeholder="e.g. 10001" required />
         </label>
 
-        <button type="submit" class="button">Check estimated delivery</button>
+        <button type="submit" class="button" data-aue-prop="ctaText" data-aue-label="CTA Text" data-aue-type="text">${ctaText}</button>
       </form>
 
       <div class="estimated-delivery__result" aria-live="polite"></div>

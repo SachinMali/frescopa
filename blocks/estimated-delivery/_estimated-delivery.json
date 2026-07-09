@@ -9,7 +9,9 @@
             "resourceType": "core/franklin/components/block/v1/block",
             "template": {
               "name": "Estimated Delivery",
-              "model": "estimated-delivery"
+              "model": "estimated-delivery",
+              "title": "When will it arrive?",
+              "ctaText": "Check estimated delivery"
             }
           }
         }
@@ -19,7 +21,24 @@
   "models": [
     {
       "id": "estimated-delivery",
-      "fields": []
+      "fields": [
+        {
+          "component": "text",
+          "valueType": "string",
+          "name": "title",
+          "value": "When will it arrive?",
+          "label": "Heading",
+          "description": "Main heading shown above the delivery checker form."
+        },
+        {
+          "component": "text",
+          "valueType": "string",
+          "name": "ctaText",
+          "value": "Check estimated delivery",
+          "label": "CTA Text",
+          "description": "Label for the submit button."
+        }
+      ]
     }
   ],
   "filters": []
