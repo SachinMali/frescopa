@@ -1,0 +1,41 @@
+.estimated-delivery {
+  display: grid;
+  gap: 1rem;
+}
+
+.estimated-delivery__form {
+  display: grid;
+  gap: 1rem;
+  max-width: 28rem;
+}
+
+.estimated-delivery__field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.estimated-delivery__result {
+  min-height: 3rem;
+}
+
+.estimated-delivery__card {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.estimated-delivery__card--in-stock {
+  border-color: #6aa84f;
+}
+
+.estimated-delivery__card--low-stock {
+  border-color: #e69138;
+}
+
+.estimated-delivery__card--out-of-stock {
+  border-color: #c00;
+}
+
+.estimated-delivery__error {
+  color: #b00020;
+}
