@@ -104,6 +104,16 @@ function formatStatus(status) {
   return STATUS_LABELS[status] || status;
 }
 
+function renderPlaceholder(container) {
+  container.innerHTML = `
+    <div class="estimated-delivery__placeholder">
+      <p class="estimated-delivery__eyebrow">Estimated delivery</p>
+      <p class="estimated-delivery__placeholder-title">Your estimate will appear here</p>
+      <p class="estimated-delivery__placeholder-text">Select a product, enter your postcode, and click the button to see availability and delivery timing.</p>
+    </div>
+  `;
+}
+
 function renderResult(container, state) {
   const { loading, error, data } = state;
 
@@ -123,7 +133,7 @@ function renderResult(container, state) {
   }
 
   if (!data) {
-    container.innerHTML = '';
+    renderPlaceholder(container);
     return;
   }
 
@@ -184,29 +194,33 @@ export default function decorate(block) {
         <p class="estimated-delivery__subtitle">Select a product and enter your postcode to see availability and estimated delivery.</p>
       </div>
 
-      <form class="estimated-delivery__form">
-        <label class="estimated-delivery__field">
-          <span class="estimated-delivery__label">Product</span>
-          <select name="sku">
-            ${PRODUCTS.map((p) => `<option value="${p.value}">${p.label}</option>`).join('')}
-          </select>
-        </label>
+      <div class="estimated-delivery__layout">
+        <form class="estimated-delivery__form">
+          <label class="estimated-delivery__field">
+            <span class="estimated-delivery__label">Product</span>
+            <select name="sku">
+              ${PRODUCTS.map((p) => `<option value="${p.value}">${p.label}</option>`).join('')}
+            </select>
+          </label>
 
-        <label class="estimated-delivery__field">
-          <span class="estimated-delivery__label">Postcode</span>
-          <input name="postcode" type="text" placeholder="e.g. 10001" required />
-        </label>
+          <label class="estimated-delivery__field">
+            <span class="estimated-delivery__label">Postcode</span>
+            <input name="postcode" type="text" placeholder="e.g. 10001" required />
+          </label>
 
-        <button type="submit" class="button" data-aue-prop="ctaText" data-aue-label="CTA Text" data-aue-type="text">${ctaText}</button>
-      </form>
+          <button type="submit" class="button" data-aue-prop="ctaText" data-aue-label="CTA Text" data-aue-type="text">${ctaText}</button>
+        </form>
 
-      <div class="estimated-delivery__result" aria-live="polite"></div>
+        <div class="estimated-delivery__result" aria-live="polite"></div>
+      </div>
     </div>
   `;
 
   const form = block.querySelector('form');
   const result = block.querySelector('.estimated-delivery__result');
   const setState = (state) => renderResult(result, state);
+
+  setState({});
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
