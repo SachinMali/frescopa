@@ -399,6 +399,27 @@
     ]
   },
   {
+    "id": "estimated-delivery",
+    "fields": [
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "title",
+        "value": "When will it arrive?",
+        "label": "Heading",
+        "description": "Main heading shown above the delivery checker form."
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "ctaText",
+        "value": "Check estimated delivery",
+        "label": "CTA Text",
+        "description": "Label for the submit button."
+      }
+    ]
+  },
+  {
     "id": "form-embed",
     "fields": [
       {
