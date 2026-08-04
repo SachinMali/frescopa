@@ -1,0 +1,17 @@
+.estimated-delivery__form {
+    display: grid;
+    gap: var(--spacing-small);
+    padding: var(--spacing-medium);
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 6%);
+  }
+  
+  .estimated-delivery__placeholder {
+    display: grid;
+    gap: var(--spacing-xsmall);
+    align-content: center;
+    border: 2px dashed var(--color-neutral-400);
+    border-radius: 12px;
+    text-align: center;
+  }
